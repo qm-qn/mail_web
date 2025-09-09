@@ -1,0 +1,117 @@
+/* ========== 基础重置与主题 ========== */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans",
+               "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #0b1020;          /* 深色背景 */
+  color: #e7ebf3;               /* 文字浅色 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ========== 布局容器 ========== */
+.container {
+  max-width: 760px;
+  margin: 6rem auto;
+  padding: 2rem;
+  background: #121a35;
+  border: 1px solid #22305f;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+}
+
+h1 {
+  margin: 0 0 1rem;
+  font-size: 28px;
+  letter-spacing: .5px;
+}
+
+/* ========== 表单行 ========== */
+.form-row {
+  display: flex;
+  gap: .75rem;
+  margin: 1.25rem 0 1.75rem;
+}
+
+input[type="email"] {
+  flex: 1;
+  padding: .85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid #2b3b71;
+  background: #0f1730;
+  color: #e7ebf3;
+  outline: none;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+input[type="email"]::placeholder { color: #8ea2d7; }
+input[type="email"]:focus {
+  border-color: #4b64d3;
+  box-shadow: 0 0 0 3px rgba(75,100,211,0.25);
+}
+
+button {
+  padding: .85rem 1.2rem;
+  border-radius: 12px;
+  border: 1px solid #4055a8;
+  background: #1a2a63;
+  color: #fff;
+  cursor: pointer;
+  transition: transform .06s ease, background .2s ease, border-color .2s ease;
+  user-select: none;
+}
+button:hover { background: #23357c; }
+button:active { transform: translateY(1px); }
+button:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+/* ========== 状态与结果 ========== */
+.status {
+  min-height: 1.5rem;           /* 预留一行高度，避免布局跳动 */
+  color: #c9d6ff;
+}
+
+.result.hidden { display: none; }
+
+.card {
+  background: #0f1730;
+  border: 1px solid #2b3b71;
+  padding: 1rem;
+  border-radius: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;       /* 防止超长字符串撑破布局 */
+}
+
+.card strong { color: #dbe3ff; }
+pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: .5rem 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+               "Courier New", monospace;
+  font-size: 13.5px;
+  background: #0b1328;
+  border: 1px solid #263671;
+  border-radius: 10px;
+  padding: .6rem .75rem;
+}
+
+/* ========== 响应式优化 ========== */
+@media (max-width: 560px) {
+  .container {
+    margin: 2rem 1rem;
+    padding: 1.25rem;
+    border-radius: 12px;
+  }
+  .form-row {
+    flex-direction: column;
+    gap: .6rem;
+  }
+  button {
+    width: 100%;
+  }
+  h1 { font-size: 22px; }
+}

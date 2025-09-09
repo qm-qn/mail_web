@@ -1,0 +1,183 @@
+<!doctype html>                 <!-- 声明文档类型：告诉浏览器这是 HTML5 页面，避免怪异渲染模式 -->
+<html lang="zh-CN">             <!-- 根元素；lang 指明页面主要语言是中文（中国），利于可访问性/搜索引擎 -->
+
+<head>                          <!-- 头部：放元信息（不是页面可见内容） -->
+  <meta charset="utf-8" />      <!-- 指定字符集为 UTF-8，中文不乱码 -->
+  <title>验证码查询</title>    <!-- 浏览器标签上的标题文字 -->
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
+                                <!-- 引用外部样式文件；让页面有更好看的样式 -->
+</head>
+
+<body>                          <!-- 页面可见内容都放在 body 里 -->
+  <div class="container">       <!-- 一个布局容器，便于统一留白/背景/边框等 -->
+    <h1>邮箱验证码</h1>            <!-- 一级标题 -->
+
+    <div class="form-row">      <!-- 表单一行：输入框 + 按钮 -->
+      <input id="email" type="email" placeholder="输入 Gmail 账号" />
+      <button id="btn">确定</button>  <!-- 提交按钮，id 方便 JS 绑定点击事件 -->
+    </div>
+
+    <p id="status" class="status"></p>
+                                <!-- 状态文本区域（展示提示信息），初始为空 -->
+    <div id="result" class="result hidden"></div>
+                                <!-- 结果显示区域；带 hidden 类表示默认隐藏 -->
+  </div>
+
+<script>                        // 下面是前端逻辑（JavaScript）
+
+// ========== 1) 邮箱 -> Apps Script URL 映射（充当“白名单”和“路由”） ==========
+const MAP = {
+  "jack971265@gmail.com": "https://script.google.com/macros/s/AKfycbytjI3ByRNHdj9UuMx-dg2G4M4vFqcUbat1EVL3IBbGe5YcLJKXUBrQVXa9VxH_Whon/exec",
+  "lily156841@gmail.com": "https://script.google.com/macros/s/AKfycbXXXXX_BBBBB/exec"
+};
+// 含义：如果用户输入的邮箱不在这个表里，我们就认为“没有此邮箱”。
+// 如果在，就把请求发到对应邮箱部署的 Apps Script Web App URL。
+
+const SHARED_SECRET = "u*84frQtCLYieWD!WD@z8qbM2H4%uLVt2BwZH%H!vT5Ecqle";
+// 共享密钥：和 Apps Script 端保持一致，用来做最简单的鉴权。
+// 注意：前端放密钥并不绝对安全（用户能看到），只是“够用”的简化方案；
+// 生产里应再配合 CORS 限制/Referer 校验/签名等。
+
+// ========== 2) 两个与后端通信的函数（调用 Apps Script 的 HTTPS 接口） ==========
+async function fetchWithRetry(url, payload, label, maxAttempts = 10, delayMs = 3000) {
+  let attempt = 0;
+  while (attempt < maxAttempts) {
+    try {
+      const r = await fetch(url, { method: "POST", body: JSON.stringify(payload) });
+      if (!r.ok) {
+        // 非网络错误（如 403/400）直接失败，不做无意义重试
+        const text = await r.text().catch(() => "");
+        throw new Error(`${label} HTTP ${r.status}${text ? ": " + text : ""}`);
+      }
+      return await r.json();
+    } catch (err) {
+      // 仅在“网络层失败/无法连接”时重试（典型如 Failed to fetch / TypeError）
+      const isNetworkError = (err instanceof TypeError) || /Failed to fetch/i.test(String(err && err.message));
+      if (!isNetworkError) throw err; // 非网络错误直接抛出
+      attempt++;
+      if (attempt >= maxAttempts) throw err; // 到达上限仍失败
+      console.warn(`${label} network error, retry ${attempt}/${maxAttempts} in ${delayMs}ms`, err);
+      await new Promise(res => setTimeout(res, delayMs));
+    }
+  }
+}
+
+// 验证邮箱是否在白名单，并向服务器要一个“起始时间戳”
+async function verify(email){
+  const url = MAP[email];
+  if(!url) return { ok:false, msg:"没有此邮箱" };
+  return await fetchWithRetry(url, { action:"verify", secret:SHARED_SECRET }, 'verify');
+}
+
+// 检查“sinceEpoch ~ sinceEpoch+60 秒内”是否有特定邮件
+async function check(email, sinceEpoch){
+  const url = MAP[email];
+  return await fetchWithRetry(
+    url,
+    { action:"check", since_epoch: sinceEpoch, secret:SHARED_SECRET },
+    'check'
+  );
+}
+
+// ========== 3) 页面交互与轮询逻辑（绑定元素、显示状态、循环重试） ==========
+
+// 通过 id 获取页面上的元素引用，后面要频繁操作它们
+const emailInput = document.getElementById('email');   // 输入框
+const btn = document.getElementById('btn');            // 按钮
+const statusEl = document.getElementById('status');    // 状态文字
+const resultEl = document.getElementById('result');    // 结果容器
+
+// 小工具函数：更新状态文字
+function setStatus(msg) {
+  statusEl.textContent = msg || '';
+}
+
+// 显示结果区（把 HTML 字符串插入到容器里，并移除 hidden 类）
+function showResult(html) {
+  resultEl.innerHTML = html;
+  resultEl.classList.remove('hidden');
+}
+
+// 隐藏结果区（清空内容并加回 hidden 类）
+function hideResult() {
+  resultEl.innerHTML = '';
+  resultEl.classList.add('hidden');
+}
+
+// 给“确定”按钮绑定点击事件（异步函数，便于用 await）
+btn.addEventListener('click', async () => {
+  hideResult();                                        // 每次点击先清空上次结果
+
+  const email = (emailInput.value || '').trim();       // 读出输入框文本并去掉两端空格
+  if(!email){                                          // 简单校验是否为空
+    setStatus('请输入邮箱地址');
+    return;                                            // 终止后续流程
+  }
+
+  setStatus('验证邮箱中…');                             // 提示一下当前进度
+
+  try {
+    const v = await verify(email);                     // 调后端“verify”
+    if(!v.ok){                                         // 不在白名单
+      setStatus('没有此邮箱');
+      return;
+    }
+
+    setStatus('验证通过，开始查询。');
+    const sinceEpoch = v.since_epoch;                  // 用后端返回的服务器时间做窗口起点
+    const start = Date.now();                          // 记录前端开始轮询的时刻（毫秒）
+    const timeoutMs = 120 * 1000;                      // 最大等待 2 分钟
+    const intervalMs = 5 * 1000;                      // 每 20 秒轮询一次
+
+    let foundPayload = null;                           // 用来保存命中的“邮件信息”
+
+    // 抽一个小函数：尝试查一次；命中返回 true 并把结果存在 foundPayload
+    async function attempt(){
+      const r = await check(email, sinceEpoch);        // 调后端“check”
+      if(r.ok && r.found){
+        foundPayload = r.payload;                      // 保存有效负载
+        return true;
+      }
+      return false;
+    }
+
+    // 先立刻尝试一次（无需等待 20s）
+    if(await attempt()){
+      setStatus('已收到符合条件的邮件。');
+    } else {
+      // 没命中：进入轮询，直到超时或命中
+      while(Date.now() - start < timeoutMs){
+        setStatus('未查询到，20 秒后重试…');           // 进度提示
+        await new Promise(res => setTimeout(res, intervalMs)); // 等待 20 秒
+        if(await attempt()){                           // 再试一次
+          setStatus('已收到符合条件的邮件。');
+          break;                                       // 跳出轮询
+        }
+      }
+    }
+
+    // 根据是否拿到结果来渲染 UI
+    if(foundPayload){
+      const dt = new Date((foundPayload.received_at||0)*1000); // epoch 秒 → JS 日期
+      // 用模板字符串拼一段 HTML，展示从后端提取的字段
+      const html = `
+        <h2>查询结果</h2>
+        <div class="card">
+          <div><strong>日期:</strong> ${dt.toLocaleString()}</div>
+          <div><strong>验证码:</strong> ${foundPayload.extracted}</div>
+        </div>
+      `;
+      showResult(html);                                // 显示结果
+    } else {
+      setStatus('在 2 分钟内未查询到符合条件的邮件。'); // 超时无结果
+    }
+
+  } catch (e){
+    console.error('UI error:', e);
+    setStatus(`发生错误：${e && e.message ? e.message : e}`);
+  }
+});
+</script>
+</body>
+</html>
