@@ -14,6 +14,7 @@ const TARGET_FROM = [
 const SUBJECT_PREFIXES = [
   'Your OpenAI code is',
   'Your authentication code',
+  'Your temporary ChatGPT login code',
   '你的 ChatGPT 代码为'
 ]; // 标题必须以这些前缀开头
 const WINDOW_SEC_DEFAULT = 120;                 // 时间窗秒数
@@ -46,7 +47,7 @@ function extractCode_(subject, plainBody, htmlBody) {
 function sixDigitsNearKeyword_(text) {
   const s = (text || '');
   if (!s) return null;
-  const re = /(authentication code|verification code|your code|验证码|动态码|一次性密码|OTP)[^0-9]{0,80}([0-9]{6})/i;
+  const re = /(authentication code|verification code|login code|log-in code|your code|验证码|动态码|一次性密码|OTP)[^0-9]{0,80}([0-9]{6})/i;
   const m = s.match(re);
   return m ? m[2] : null;
 }
