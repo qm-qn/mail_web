@@ -1,0 +1,351 @@
+Delivered-To: rubesubban@gmail.com
+Received: by 2002:a05:6f02:8585:b0:119:e771:3102 with SMTP id f5csp390795rch;
+        Tue, 28 Apr 2026 01:47:23 -0700 (PDT)
+X-Received: by 2002:a17:902:b496:b0:2b0:afbe:4e14 with SMTP id d9443c01a7336-2b97c4cc788mr17512925ad.40.1777366043691;
+        Tue, 28 Apr 2026 01:47:23 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1777366043; cv=none;
+        d=google.com; s=arc-20240605;
+        b=Zi6CHYFQ9HjgQi7z7MHGqteERgLkJorV/6+x7kxXsC1Ea3KE7q2ZPZIAPCgtha0zOe
+         2UQDMMzR2PyyVqvEU9YQKBRp4aVm4PyKZaGjdJeoPnMX7REpMbMKKuH1C0BwcC5LoLo6
+         98YRmyA+g0VHe7IPAOIi9X+SLRgBuP+flMB4rj+fwwzZm59NFY81mHi8K5I4RqOErSiQ
+         73ZoBykrlNuK1ORwzTjoJntpYyujsD+20TuHWBcA0xSyqjsmIbmxVFlkFltndzVa9SYx
+         0MAeUO5AL1kPoOD3RDZsbJiGXkkH/fQthLemBIOJpevD06BuiEqp33yJPYfKh4AeRNK0
+         kdwQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=to:reply-to:subject:message-id:mime-version:from:date
+         :content-transfer-encoding:dkim-signature:dkim-signature;
+        bh=uEozbeS11U77cFoRWpVPEGsmrvKhW8cj0srU/JhLkSk=;
+        fh=e94mxsBQWZtsEGztBGx28l8jGIvemo072a5dEZYXUFk=;
+        b=XUwC/54DIDli0trB/di7pYeL7rWDnvq23cB5ALpDR1/dgtUbYSPNOt85vco8Ikvb8b
+         Ia1u76hpotbuReU+FfF9ppNNlcUabizKo7i1PJDoeIVbCrrv1DHgDbff9V1ey8Lb3dCQ
+         F7jOXvgHuXe+QpJLJmWqf7cqvkkdVrVz/4MdFerlutTnK7MvyxkRxWLjGgvaA98v94k3
+         p35l2DBSHm5LA5IDEsNlq0Ny+nXLw0ce/T6GKUqrQlk9CfpRQcL9HJ7J+lI297RqfuoU
+         hZks8hKSkFjRj/h0FeVDdUZo8sPbhj5wwVaMyzOpSwATKo+4ijJC8p7caJPAs92lNiZR
+         4Djw==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@tm.openai.com header.s=s1 header.b=WYwnTlqG;
+       dkim=pass header.i=@sendgrid.info header.s=smtpapi header.b=Y8tVAXBu;
+       spf=pass (google.com: domain of bounces+20216706-d558-rubesubban=gmail.com@em7877.tm.openai.com designates 159.183.120.121 as permitted sender) smtp.mailfrom="bounces+20216706-d558-rubesubban=gmail.com@em7877.tm.openai.com";
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=tm.openai.com
+Return-Path: <bounces+20216706-d558-rubesubban=gmail.com@em7877.tm.openai.com>
+Received: from o14.ptr1360.openai.com (o14.ptr1360.openai.com. [159.183.120.121])
+        by mx.google.com with ESMTPS id d9443c01a7336-2b97ace7ec7si36469135ad.135.2026.04.28.01.47.23
+        for <rubesubban@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 28 Apr 2026 01:47:23 -0700 (PDT)
+Received-SPF: pass (google.com: domain of bounces+20216706-d558-rubesubban=gmail.com@em7877.tm.openai.com designates 159.183.120.121 as permitted sender) client-ip=159.183.120.121;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@tm.openai.com header.s=s1 header.b=WYwnTlqG;
+       dkim=pass header.i=@sendgrid.info header.s=smtpapi header.b=Y8tVAXBu;
+       spf=pass (google.com: domain of bounces+20216706-d558-rubesubban=gmail.com@em7877.tm.openai.com designates 159.183.120.121 as permitted sender) smtp.mailfrom="bounces+20216706-d558-rubesubban=gmail.com@em7877.tm.openai.com";
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=tm.openai.com
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=tm.openai.com;
+	h=content-transfer-encoding:content-type:date:from:mime-version:subject:
+	reply-to:to:cc:content-type:date:feedback-id:from:subject:to;
+	s=s1; t=1777366042; bh=uEozbeS11U77cFoRWpVPEGsmrvKhW8cj0srU/JhLkSk=;
+	b=WYwnTlqG5poBzeZz28xaXrcryGBRhpheulXqq78L47UzJzVoVIqy0s1ahCHhSeyaB2YV
+	Vdolaof1TCOJjsGTE0cw96wsoZ2/RlRHyWk/mDS0id29rGmo5OOGE06ZruAdAHbmSIwbrK
+	zHVAgAeMWt3YAF+C3kxA4oudGB7HQE1OhlZ4YvjXKtUgCLYXruZ+eRCWgcBpuRHcZj/PEm
+	tIsqQpP4n4jMvhJXYqttk6tSIi9QRjFEc2iCjIsgYqkKpkMTMo5dSbTRlFzoB0WDoKeWoE
+	a4/BQ8ldk7wWftDlExYBxLVOzwuh3XXYkK2LNoNBMZ+yGBdI76w1kSXtfcEDkRPg==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=sendgrid.info;
+	h=content-transfer-encoding:content-type:date:from:mime-version:subject:
+	reply-to:to:cc:content-type:date:feedback-id:from:subject:to;
+	s=smtpapi; t=1777366042; bh=uEozbeS11U77cFoRWpVPEGsmrvKhW8cj0srU/JhLkSk=;
+	b=Y8tVAXBuhXW0lUWkBjAsLzfBeubQRDLubzhUNAtVBsz+0hzmocyNj04loACE25rgu30L
+	+ecHi9xaLQFB+FUzLbYGmrNpFZvsVDo71cV7Iyh/u9ENHC+2frB1mQBW2l9go0kVnjJf8h
+	9xG+KgDvi0kBV8jfuaJzA1bv6wEKcdAnU=
+Received: by recvd-6fbc479b5f-5pjbc with SMTP id recvd-6fbc479b5f-5pjbc-1-69F0741A-25
+	2026-04-28 08:47:22.400750675 +0000 UTC m=+557861.562667594
+Received: from MjAyMTY3MDY (unknown)
+	by geopod-ismtpd-8 (SG) with HTTP
+	id z_CJDCvQQ0KVZ9nHqWOUlw
+	Tue, 28 Apr 2026 08:47:22.398 +0000 (UTC)
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/html; charset=us-ascii
+Date: Tue, 28 Apr 2026 08:47:22 +0000 (UTC)
+From: noreply@tm.openai.com
+Mime-Version: 1.0
+Message-ID: <z_CJDCvQQ0KVZ9nHqWOUlw@geopod-ismtpd-8>
+Subject: Your authentication code
+Reply-To: noreply@tm.openai.com
+X-SG-EID: 
+ =?us-ascii?Q?u001=2EwgPQEA+gt=2F9mQv4JaEv+7QzQlZ2sWTAFlaEr+UWceqK9bdanmKLcovQTb?=
+ =?us-ascii?Q?nKGHyrlGfspxRaGUpbBWvx7JUTycoFg+SljaPqr?=
+ =?us-ascii?Q?bzx25HCaI6RBS=2FyG4XSaBQ2LC3EJe7YkbMl7TU7?=
+ =?us-ascii?Q?seoDLfmDaqdmkJH2tKsfpzn9vDfoumErLZvPu3p?=
+ =?us-ascii?Q?R2vvX71c3fkczjAYvTWknB9hlWJTL8CoDEIdvwr?=
+ =?us-ascii?Q?Q=3D=3D?=
+X-SG-ID: 
+ =?us-ascii?Q?u001=2ESdBcvi+Evd=2FbQef8eZF3BoMNuFmcP5rq+Py=2FzrrMdK6QuthCfWhsA2OXF?=
+ =?us-ascii?Q?d2ogPal5ecNFS2d9sR6gemXdd8Z7haYPWzNeVm8?=
+ =?us-ascii?Q?pN2N9SN6k4F+7HpWuTuww2TnYM=2Flq4D2maZhNun?=
+ =?us-ascii?Q?3cGPbHuzIrerZLHaAkeix+ekGq3MxfCdNXfgXNG?=
+ =?us-ascii?Q?pfsVEzwgPvgvQyRUKIVTGlayojF8gBDcAwc7VLS?=
+ =?us-ascii?Q?Q=3D=3D?=
+To: rubesubban@gmail.com
+X-Entity-ID: u001.bVuJR+6WQkYgHBZFem2ybw==
+
+<!DOCTYPE html>
+<html>
+<head>
+ =20
+  <meta charset=3D"utf-8">
+  <meta http-equiv=3D"x-ua-compatible" content=3D"ie=3Dedge">
+  <title>Your authentication code </title>
+  <meta name=3D"viewport" content=3D"width=3Ddevice-width, initial-scale=3D=
+1">
+  <style type=3D"text/css">
+  /**
+   * Google webfonts. Recommended to include the .woff version for cross-cl=
+ient compatibility.
+   */
+  @media screen {
+    @font-face {
+      font-family: Colfax;
+      src: url(https://openai-public.s3-us-west-2.amazonaws.com/beta/fonts/=
+ColfaxAIRegular.woff2);
+      font-weight: normal;
+    }
+
+    @font-face {
+      font-family: Colfax;
+      src: url(https://openai-public.s3-us-west-2.amazonaws.com/beta/fonts/=
+ColfaxAIMedium.woff2);
+      font-weight: bold;
+    }
+  }
+
+  /**
+   * Avoid browser level font resizing.
+   * 1. Windows Mobile
+   * 2. iOS / OSX
+   */
+  body,
+  table,
+  td,
+  a {
+    -ms-text-size-adjust: 100%; /* 1 */
+    -webkit-text-size-adjust: 100%; /* 2 */
+    font-family: Colfax, Helvetica, Arial, sans-serif;
+  }
+
+  /**
+   * Remove extra space added to tables and cells in Outlook.
+   */
+  table,
+  td {
+    mso-table-rspace: 0pt;
+    mso-table-lspace: 0pt;
+  }
+
+  /**
+   * Better fluid images in Internet Explorer.
+   */
+  img {
+    -ms-interpolation-mode: bicubic;
+  }
+
+  /**
+   * Remove blue links for iOS devices.
+   */
+  a[x-apple-data-detectors] {
+    font-family: inherit !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    line-height: inherit !important;
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+
+  /**
+   * Fix centering issues in Android 4.4.
+   */
+  div[style*=3D"margin: 16px 0;"] {
+    margin: 0 !important;
+  }
+
+  body {
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /**
+   * Collapse table borders to avoid space between cells.
+   */
+  table {
+    border-collapse: collapse !important;
+  }
+
+  a {
+    color: #10A37F;
+  }
+
+  img {
+    height: auto;
+    line-height: 100%;
+    text-decoration: none;
+    border: 0;
+    outline: none;
+  }
+
+  h1 {
+      font-size: 26px;
+      line-height: 1.4;
+      font-weight: 700;
+      margin: 0;
+  }
+  h2 {
+      font-size: 24px;
+      line-height: 1.4;
+      font-weight: 700;
+      margin: 0;
+  }
+  p {
+      margin: 0;
+  }
+  p + p {
+      margin-top: 16px;
+  }
+  </style>
+
+ =20
+</head>
+<body style=3D"background-color: #ffffff;">
+
+  <div class=3D"preheader" style=3D"display: none; max-width: 0; max-height=
+: 0; overflow: hidden; font-size: 1px; line-height: 1px; color: #fff; opaci=
+ty: 0;">
+     =20
+  </div>
+
+  <!-- start body -->
+  <table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" width=3D"100%">
+    <!-- start body block -->
+    <tr>
+      <td align=3D"center">
+        <!--[if (gte mso 9)|(IE)]>
+        <table align=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" width=3D"600">
+        <tr>
+        <td align=3D"center" valign=3D"top" width=3D"600">
+        <![endif]-->
+        <table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" width=3D"10=
+0%" style=3D"width: 560px;background-color:#fff;">
+            <!-- header image -->
+            <tr>
+                <td valign=3D"top" style=3D"padding: 27px 20px 24px 15px;">
+                    <table align=3D"left" width=3D"100%" border=3D"0" cellp=
+adding=3D"0" cellspacing=3D"0" style=3D"min-width:100%;">
+                        <tbody><tr>
+                            <td valign=3D"top" style=3D"padding-top: 0; pad=
+ding-bottom: 0; text-align:left;">
+                                <img align=3D"left" alt=3D"" src=3D"https:/=
+/cdn.openai.com/API/logo-assets/openai-logo-email-header-1.png" width=3D"56=
+0" height=3D"168" style=3D"width:140px; max-width:100%; padding-bottom: 0; =
+display: inline !important; vertical-align: bottom;">
+                            </td>
+                        </tr>
+                        </tbody></table>
+                </td>
+            </tr>
+
+         =20
+<tr>
+    <td align=3D"left" bgcolor=3D"#ffffff" style=3D"padding: 16px 24px; fon=
+t-size: 32px; line-height: 40px;">
+        <p>
+            Your authentication code
+        </p>
+    </td>
+</tr>
+<tr>
+  <td align=3D"left" bgcolor=3D"#ffffff" style=3D"padding: 16px 24px; font-=
+size: 16px; line-height: 24px;">
+    <p>
+        Please use the following code to help verify your identity:
+    </p>
+    <p>
+       490059
+    </p>
+    <p>
+      Best,<br/>
+      OpenAI
+    </p>
+  </td>
+</tr>
+
+
+
+        </table>
+        <!--[if (gte mso 9)|(IE)]>
+        </td>
+        </tr>
+        </table>
+        <![endif]-->
+      </td>
+    </tr>
+    <!-- end body block -->
+
+    <!-- start footer -->
+    <tr>
+      <td align=3D"center" style=3D"padding: 24px;">
+        <!--[if (gte mso 9)|(IE)]>
+        <table align=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" width=3D"600">
+        <tr>
+        <td align=3D"center" valign=3D"top" width=3D"600">
+        <![endif]-->
+        <table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" width=3D"10=
+0%" style=3D"max-width: 560px;">
+           =20
+  <tr>
+  <td align=3D"left" style=3D"padding: 4px 24px; font-size: 14px; line-heig=
+ht: 20px; color: #666;">
+    <p style=3D"margin: 0;">If you have any questions please contact us thr=
+ough our <a href=3D"https://u20216706.ct.sendgrid.net/ls/click?upn=3Du001.I=
+QLfsj4kk-2BK7JhymNusRMmfwoG2v3nTgHW39-2Fobue0vS8iPJK05Qsdjl1qKLmoz-2Fzcyp_n=
+3ETAEYpdifEZ0TYoQOXWVp5uEPqi9OKZItLpiIoqruDqiiKqj4VPChuy0ohQmwZRXHLgd9N24tV=
+NYv-2FZJy9whQbxaJyNqjL1ZXcLPx6EtwivXEk-2BWEIeD-2BThZH1gkqWFt398NcXjBjsVPVVw=
+u6Q2tDKV9PgrtSRujYpUFoi-2FWiCuvqTNouDQHSH8Ob8vhWWzzNdqYuqPcmSaszDinj4jnCV-2=
+FtYmY3y3FxTNgFLZKDzP1MUOJuXvoY0YSb0STt-2BDb4bW1mdjE-2BvUE583IK0psbkS-2BJ6MM=
+6vQn0aoY7BJ7KLp0ey-2BBo21roY-2BZeYtQT4Pfnl53wukAP00fXYFkzunsw5Xv9Py-2F6B2Ov=
+pgFyAV1tdGc7h8tf3XfJMsztGfVUUULhy8rDiYDwFioJkvfozFwQ-3D-3D">help center</a>=
+</p>
+  </td>
+</tr>
+
+        </table>
+        <!--[if (gte mso 9)|(IE)]>
+        </td>
+        </tr>
+        </table>
+        <![endif]-->
+      </td>
+    </tr>
+    <!-- end footer -->
+
+  </table>
+  <!-- end body -->
+  <div class=3D"debug-string" style=3D"display: none; max-width: 0; max-hei=
+ght: 0; overflow: hidden; font-size: 1px; line-height: 1px; color: #ececf1;=
+ opacity: 0;">
+     =20
+  </div>
+
+<img src=3D"https://u20216706.ct.sendgrid.net/wf/open?upn=3Du001.NU62pKagOZ=
+VUyPyzm31c6LBIDH7TdPfFZAbDI4dmHJ2EQhEo-2B60WB4ZWNlmtkTfOj5lBBDX2tpIkbHMQFeq=
+GB4eB712OnK4RQxRvfq5tdbneu7aKF2Uqb5BroGV5P9BnhmqqmAn5nfXP3K8llM0nmeBBnOgg5i=
+3NQgSi6x-2BzldzXup2C2gA6IOGxPzguYXh0TyEAvLtYISap04pWpczLEFcdl0WjsV4UTtRYYbJ=
+fUJwH2zc5iLjpzKcdcVQbPLFK35HmoNEr8-2BfjRjBu9ed0U2X3I-2FzLi-2FwYk7cCvJl5nzu-=
+2Bv1BpRPZgNFgJZM5KJHYKwQDeZoWNUWmW6fPDKwahphiToee7n-2B48fB-2FYeoAaOOIkgiudF=
+8aIOdmHQClnI-2Fk66y8HHAt58Wq-2BYiFMMyXh-2BQ-3D-3D" alt=3D"" width=3D"1" hei=
+ght=3D"1" border=3D"0" style=3D"height:1px !important;width:1px !important;=
+border-width:0 !important;margin-top:0 !important;margin-bottom:0 !importan=
+t;margin-right:0 !important;margin-left:0 !important;padding-top:0 !importa=
+nt;padding-bottom:0 !important;padding-right:0 !important;padding-left:0 !i=
+mportant;"/></body>
+</html>
