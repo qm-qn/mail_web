@@ -1,117 +1,128 @@
-/* ========== 基础重置与主题 ========== */
-* { box-sizing: border-box; }
-html, body { height: 100%; }
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans",
-               "PingFang SC", "Microsoft YaHei", sans-serif;
-  background: #0b1020;          /* 深色背景 */
-  color: #e7ebf3;               /* 文字浅色 */
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+:root {
+  --bg: linear-gradient(135deg, #121c3f, #192b66);
+  --panel: rgba(11, 22, 52, 0.8);
+  --text: #e8edff;
+  --muted: #a8b4dd;
+  --border: #334a95;
 }
 
-/* ========== 布局容器 ========== */
-.container {
-  max-width: 760px;
-  margin: 6rem auto;
-  padding: 2rem;
-  background: #121a35;
-  border: 1px solid #22305f;
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: "Trebuchet MS", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page {
+  width: min(680px, 92vw);
+  padding: 24px;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
   border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  padding: 24px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+.label {
+  display: inline-block;
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.config-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+#apiInput {
+  flex: 1;
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  background: #0f1730;
+  color: #e8edff;
+}
+
+#saveBtn {
+  width: 84px;
+  flex: 0 0 auto;
+}
+
+.hint {
+  min-height: 18px;
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 h1 {
-  margin: 0 0 1rem;
+  margin: 0;
   font-size: 28px;
   letter-spacing: .5px;
 }
 
-/* ========== 表单行 ========== */
-.form-row {
-  display: flex;
-  gap: .75rem;
-  margin: 1.25rem 0 1.75rem;
+.account {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 14px;
 }
 
-input[type="email"] {
-  flex: 1;
-  padding: .85rem 1rem;
-  border-radius: 12px;
-  border: 1px solid #2b3b71;
-  background: #0f1730;
-  color: #e7ebf3;
-  outline: none;
-  transition: border-color .2s ease, box-shadow .2s ease;
+.code {
+  margin-top: 18px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: clamp(34px, 10vw, 60px);
+  font-weight: 700;
+  letter-spacing: 6px;
+  color: #fff;
+  text-align: center;
 }
-input[type="email"]::placeholder { color: #8ea2d7; }
-input[type="email"]:focus {
-  border-color: #4b64d3;
-  box-shadow: 0 0 0 3px rgba(75,100,211,0.25);
+
+.meta {
+  margin-top: 6px;
+  text-align: center;
+  color: var(--muted);
+}
+
+#ttl {
+  color: #d4dcff;
+  font-weight: 700;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
 }
 
 button {
-  padding: .85rem 1.2rem;
-  border-radius: 12px;
-  border: 1px solid #4055a8;
-  background: #1a2a63;
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #23356e;
   color: #fff;
   cursor: pointer;
-  transition: transform .06s ease, background .2s ease, border-color .2s ease;
-  user-select: none;
-}
-button:hover { background: #23357c; }
-button:active { transform: translateY(1px); }
-button:disabled {
-  opacity: .6;
-  cursor: not-allowed;
 }
 
-/* ========== 状态与结果 ========== */
+button:hover { background: #2a3f86; }
+
 .status {
-  min-height: 1.5rem;           /* 预留一行高度，避免布局跳动 */
-  color: #c9d6ff;
-}
-
-.result.hidden { display: none; }
-
-.card {
-  background: #0f1730;
-  border: 1px solid #2b3b71;
-  padding: 1rem;
-  border-radius: 12px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;       /* 防止超长字符串撑破布局 */
-}
-
-.card strong { color: #dbe3ff; }
-pre {
-  white-space: pre-wrap;
-  word-break: break-word;
-  margin: .5rem 0 0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-               "Courier New", monospace;
-  font-size: 13.5px;
-  background: #0b1328;
-  border: 1px solid #263671;
-  border-radius: 10px;
-  padding: .6rem .75rem;
-}
-
-/* ========== 响应式优化 ========== */
-@media (max-width: 560px) {
-  .container {
-    margin: 2rem 1rem;
-    padding: 1.25rem;
-    border-radius: 12px;
-  }
-  .form-row {
-    flex-direction: column;
-    gap: .6rem;
-  }
-  button {
-    width: 100%;
-  }
-  h1 { font-size: 22px; }
+  margin: 14px 0 0;
+  min-height: 24px;
+  color: #c8d2f8;
+  font-size: 14px;
 }
