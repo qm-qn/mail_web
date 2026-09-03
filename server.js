@@ -1,155 +1,236 @@
 #!/usr/bin/env node
 import http from 'node:http';
-import { createHmac } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { totp } from './totp.js';
 
-function toPositiveInt(v, fallback) {
-  const n = Number(v);
-  if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) return fallback;
-  return n;
+const ROOT_DIR = dirname(fileURLToPath(import.meta.url));
+const DEFAULT_EMAIL_ENDPOINTS = {
+  'rubesubban@gmail.com': 'https://script.google.com/macros/s/AKfycbx7i4fZ34bzRT42XiXvO2vq4v8snfHwAtcSH0H-LUZPEUsmWF7TP7fxa9Ckmz80Qlw/exec',
+  'bubber7789121@gmail.com': 'https://script.google.com/macros/s/AKfycbygriDK5NQdlnx-uTi0rHUp4p4oyQit2h-aCQc0YjOsRXNKr5XBE-9Q3eYfgnZTV0p3/exec'
+};
+const DEFAULT_TOTP_APPS_SCRIPT_URL = DEFAULT_EMAIL_ENDPOINTS['rubesubban@gmail.com'];
+
+function positiveInt(value, fallback, min = 1, max = Number.MAX_SAFE_INTEGER) {
+  const number = Number(value);
+  if (!Number.isInteger(number) || number < min || number > max) return fallback;
+  return number;
+}
+
+function parseEmailEndpoints(raw) {
+  if (!raw) return DEFAULT_EMAIL_ENDPOINTS;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') throw new Error();
+    return Object.fromEntries(
+      Object.entries(parsed)
+        .map(([email, url]) => [String(email).trim().toLowerCase(), String(url).trim()])
+        .filter(([email, url]) => email && /^https:\/\//i.test(url))
+    );
+  } catch {
+    throw new Error('EMAIL_APPS_SCRIPT_MAP must be a JSON object of email-to-HTTPS-URL entries');
+  }
 }
 
 const CONFIG = {
   secret: String(process.env.TOTP_SECRET || '').trim(),
-  period: toPositiveInt(process.env.TOTP_PERIOD || 30, 30),
-  digits: (() => {
-    const d = toPositiveInt(process.env.TOTP_DIGITS || 6, 6);
-    return Math.min(10, Math.max(6, d));
-  })(),
+  period: positiveInt(process.env.TOTP_PERIOD, 30),
+  digits: positiveInt(process.env.TOTP_DIGITS, 6, 6, 10),
   label: process.env.TOTP_LABEL || 'TOTP',
   host: process.env.HOST || '0.0.0.0',
-  port: toPositiveInt(process.env.PORT || 3000, 3000),
-  allowOrigin: process.env.ALLOW_ORIGIN || '*' // 先按你的要求放宽，先能跑
+  port: positiveInt(process.env.PORT, 3000, 1, 65535),
+  allowOrigin: process.env.ALLOW_ORIGIN || '*',
+  gmailSecret: String(process.env.GMAIL_SHARED_SECRET || '').trim(),
+  emailEndpoints: parseEmailEndpoints(process.env.EMAIL_APPS_SCRIPT_MAP),
+  totpAppsScriptUrl: String(process.env.TOTP_APPS_SCRIPT_URL || DEFAULT_TOTP_APPS_SCRIPT_URL).trim(),
+  totpAppsScriptSecret: String(process.env.TOTP_APPS_SCRIPT_SECRET || '').trim(),
+  upstreamTimeoutMs: positiveInt(process.env.UPSTREAM_TIMEOUT_MS, 30000, 1000, 120000)
 };
 
-if (!CONFIG.secret || CONFIG.secret.length < 8) {
-  throw new Error('TOTP_SECRET missing or too short');
-}
-
-function writeJson(res, code, obj) {
-  const body = JSON.stringify(obj);
-  res.statusCode = code;
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+function setCors(res) {
   res.setHeader('Access-Control-Allow-Origin', CONFIG.allowOrigin);
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.end(body);
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Vary', 'Origin');
 }
 
-function base32Decode(input) {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  const clean = String(input || '').toUpperCase().replace(/=+/g, '').replace(/\s+/g, '');
-  let bits = '';
-  for (const ch of clean) {
-    const idx = alphabet.indexOf(ch);
-    if (idx < 0) continue;
-    bits += idx.toString(2).padStart(5, '0');
+function writeJson(res, status, payload) {
+  res.statusCode = status;
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+  setCors(res);
+  res.end(JSON.stringify(payload));
+}
+
+async function readJson(req) {
+  return await new Promise((resolve, reject) => {
+    let body = '';
+    let settled = false;
+    req.setEncoding('utf8');
+    req.on('data', (chunk) => {
+      if (settled) return;
+      body += chunk;
+      if (body.length > 4096) {
+        settled = true;
+        reject(Object.assign(new Error('payload too large'), { status: 413 }));
+      }
+    });
+    req.on('end', () => {
+      if (settled) return;
+      settled = true;
+      if (!body) return resolve({});
+      try {
+        resolve(JSON.parse(body));
+      } catch {
+        reject(Object.assign(new Error('invalid json'), { status: 400 }));
+      }
+    });
+    req.on('error', (error) => {
+      if (!settled) reject(error);
+    });
+  });
+}
+
+async function callAppsScript(url, payload) {
+  const response = await fetch(url, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    redirect: 'follow',
+    signal: AbortSignal.timeout(CONFIG.upstreamTimeoutMs)
+  });
+  if (!response.ok) throw new Error(`Apps Script HTTP ${response.status}`);
+  const result = await response.json();
+  if (!result || typeof result !== 'object') throw new Error('Apps Script returned invalid JSON');
+  return result;
+}
+
+async function getEmailCode(email, windowSec) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const endpoint = CONFIG.emailEndpoints[normalizedEmail];
+  if (!endpoint) return { status: 404, body: { ok: false, error: '没有此邮箱' } };
+  if (!CONFIG.gmailSecret) {
+    return { status: 503, body: { ok: false, error: '后端未配置 GMAIL_SHARED_SECRET' } };
   }
-  const bytes = [];
-  for (let i = 0; i + 8 <= bits.length; i += 8) {
-    bytes.push(parseInt(bits.slice(i, i + 8), 2));
+
+  const verified = await callAppsScript(endpoint, {
+    action: 'verify',
+    secret: CONFIG.gmailSecret
+  });
+  if (!verified.ok || !verified.since_epoch) {
+    return { status: 502, body: { ok: false, error: verified.error || '邮箱接口验证失败' } };
   }
-  return Buffer.from(bytes);
+
+  const checked = await callAppsScript(endpoint, {
+    action: 'check',
+    since_epoch: verified.since_epoch,
+    window_sec: windowSec,
+    secret: CONFIG.gmailSecret
+  });
+  if (!checked.ok) {
+    return { status: 502, body: { ok: false, error: checked.error || '邮箱接口查询失败' } };
+  }
+  return { status: 200, body: checked };
 }
 
-function hashDigest(key, counter) {
-  const msg = Buffer.alloc(8);
-  msg.writeBigUInt64BE(BigInt(counter), 0);
-  return createHmac('sha1', key).update(msg).digest();
-}
+async function getTotpCode() {
+  if (CONFIG.secret) {
+    return { ok: true, ...totp(CONFIG.secret, { period: CONFIG.period, digits: CONFIG.digits }), account: CONFIG.label };
+  }
+  if (!CONFIG.totpAppsScriptUrl) {
+    throw Object.assign(new Error('后端未配置 TOTP_SECRET 或 TOTP_APPS_SCRIPT_URL'), { status: 503 });
+  }
 
-function hotp(key, counter, digits = 6) {
-  const h = hashDigest(key, counter);
-  const offset = h[h.length - 1] & 0x0f;
-  const binary =
-    ((h[offset] & 0x7f) << 24) |
-    ((h[offset + 1] & 0xff) << 16) |
-    ((h[offset + 2] & 0xff) << 8) |
-    (h[offset + 3] & 0xff);
+  const payload = { action: 'code' };
+  if (CONFIG.totpAppsScriptSecret) payload.secret = CONFIG.totpAppsScriptSecret;
+  const result = await callAppsScript(CONFIG.totpAppsScriptUrl, payload);
+  if (!result.ok) throw Object.assign(new Error(result.error || 'TOTP Apps Script 请求失败'), { status: 502 });
 
-  const mod = 10 ** digits;
-  return String(binary % mod).padStart(digits, '0');
-}
-
-function totp(secret, period = 30, digits = 6) {
-  const key = base32Decode(secret);
-  const nowSec = Math.floor(Date.now() / 1000);
-  const counter = Math.floor(nowSec / period);
-  const code = hotp(key, counter, digits);
+  const expiresAt = Number(result.expires_at || 0);
+  const serverTime = Number(result.server_time || result.generated_at || Date.now());
   return {
-    code,
-    period,
-    digits,
-    expires_at: (counter + 1) * period * 1000,
-    server_time: nowSec * 1000
+    ...result,
+    expires_at: expiresAt && expiresAt < 1e12 ? expiresAt * 1000 : expiresAt,
+    server_time: serverTime && serverTime < 1e12 ? serverTime * 1000 : serverTime
   };
 }
 
-const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url || '/', `http://${req.headers.host}`);
-  const pathname = url.pathname.replace(/\/+$/, '');
+async function serveStatic(pathname, res) {
+  const files = {
+    '/': ['index.html', 'text/html; charset=utf-8'],
+    '/index.html': ['index.html', 'text/html; charset=utf-8'],
+    '/style.css': ['style.css', 'text/css; charset=utf-8']
+  };
+  const target = files[pathname];
+  if (!target) return false;
+  const content = await readFile(join(ROOT_DIR, target[0]));
+  res.statusCode = 200;
+  res.setHeader('Content-Type', target[1]);
+  res.setHeader('Cache-Control', 'no-cache');
+  res.end(content);
+  return true;
+}
 
-  if (req.method === 'OPTIONS') {
-    res.statusCode = 204;
-    res.setHeader('Access-Control-Allow-Origin', CONFIG.allowOrigin);
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    return res.end('');
-  }
+export function createServer() {
+  return http.createServer(async (req, res) => {
+    const requestUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+    const pathname = requestUrl.pathname.replace(/\/+$/, '') || '/';
 
-  if (pathname === '/health') {
-    return writeJson(res, 200, {
-      ok: true,
-      service: 'totp-server',
-      period: CONFIG.period,
-      digits: CONFIG.digits,
-      label: CONFIG.label
-    });
-  }
-
-  if (pathname !== '/totp') {
-    return writeJson(res, 404, { ok: false, error: 'not found' });
-  }
-
-  if (req.method !== 'POST') {
-    return writeJson(res, 405, { ok: false, error: 'method not allowed' });
-  }
-
-  let body = '';
-  req.on('data', (chunk) => {
-    body += chunk;
-    if (body.length > 2048) {
-      writeJson(res, 413, { ok: false, error: 'payload too large' });
-      req.destroy();
-    }
-  });
-
-  req.on('end', () => {
     try {
-      const payload = body ? JSON.parse(body) : {};
-      if (payload && String(payload.action || '').toLowerCase() !== 'code') {
-        return writeJson(res, 400, { ok: false, error: 'invalid action' });
+      if (req.method === 'OPTIONS') {
+        res.statusCode = 204;
+        setCors(res);
+        return res.end();
       }
 
-      const result = totp(CONFIG.secret, CONFIG.period, CONFIG.digits);
-      return writeJson(res, 200, {
-        ok: true,
-        code: result.code,
-        expires_at: result.expires_at,
-        account: CONFIG.label,
-        period: result.period,
-        digits: result.digits,
-        server_time: result.server_time
-      });
-    } catch (err) {
-      if (err instanceof SyntaxError) {
-        return writeJson(res, 400, { ok: false, error: 'invalid json' });
+      if (req.method === 'GET' && pathname === '/health') {
+        return writeJson(res, 200, {
+          ok: true,
+          service: 'verification-code-server',
+          totp_configured: Boolean(CONFIG.secret || CONFIG.totpAppsScriptUrl),
+          totp_source: CONFIG.secret ? 'local' : 'apps-script',
+          email_configured: Boolean(CONFIG.gmailSecret),
+          email_accounts: Object.keys(CONFIG.emailEndpoints),
+          period: CONFIG.period,
+          digits: CONFIG.digits,
+          label: CONFIG.label
+        });
       }
-      return writeJson(res, 500, { ok: false, error: 'server error' });
+
+      if (req.method === 'GET' && await serveStatic(pathname, res)) return;
+
+      if (req.method !== 'POST') {
+        return writeJson(res, 404, { ok: false, error: 'not found' });
+      }
+
+      const payload = await readJson(req);
+
+      if (pathname === '/totp') {
+        if (String(payload.action || '').toLowerCase() !== 'code') {
+          return writeJson(res, 400, { ok: false, error: 'invalid action' });
+        }
+        return writeJson(res, 200, await getTotpCode());
+      }
+
+      if (pathname === '/email/code') {
+        const windowSec = positiveInt(payload.window_sec, 120, 30, 600);
+        const result = await getEmailCode(payload.email, windowSec);
+        return writeJson(res, result.status, result.body);
+      }
+
+      return writeJson(res, 404, { ok: false, error: 'not found' });
+    } catch (error) {
+      const isTimeout = error && (error.name === 'TimeoutError' || error.name === 'AbortError');
+      const status = error && error.status ? error.status : (isTimeout ? 504 : 500);
+      const message = isTimeout ? '上游邮箱接口超时' : (error && error.message) || 'server error';
+      return writeJson(res, status, { ok: false, error: message });
     }
   });
-});
+}
 
-server.listen(CONFIG.port, CONFIG.host, () => {
-  console.log(`TOTP server running at http://${CONFIG.host}:${CONFIG.port}/totp`);
-  console.log(`Period=${CONFIG.period}, Digits=${CONFIG.digits}, Label=${CONFIG.label}`);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  createServer().listen(CONFIG.port, CONFIG.host, () => {
+    console.log(`Verification code server: http://${CONFIG.host}:${CONFIG.port}`);
+    console.log(`TOTP=${CONFIG.secret ? 'local' : (CONFIG.totpAppsScriptUrl ? 'apps-script' : 'missing')}, Gmail=${CONFIG.gmailSecret ? 'configured' : 'missing'}`);
+  });
+}

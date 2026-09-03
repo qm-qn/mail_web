@@ -1,87 +1,75 @@
-# 本机 TOTP 后端（单账号）
+# 验证码中心
 
-## 1) 启动服务
+GitHub Pages 前端现在直接连接 Google Apps Script，同时显示：
+
+- TOTP 一次性验证码；
+- Gmail 邮箱验证码。
+
+正常使用不再需要启动本机 Node 服务，也不再需要 localtunnel。
+
+## 在线链路
+
+```text
+GitHub Pages → Google Apps Script
+```
+
+前端已经配置以下 Apps Script：
+
+- `rubesubban@gmail.com`：合并版 Gmail + TOTP 接口；
+- `bubber7789121@gmail.com`：原有 Gmail 验证码接口。
+
+页面加载后会自动获取 TOTP；邮箱验证码在输入 Gmail 地址并点击“查询邮箱码”后，通过 `verify → check` 流程查询，最长轮询一分钟。
+
+## 本地查看页面
+
+静态页面可以使用任意 HTTP 静态服务器预览，例如：
 
 ```bash
 cd /home/yu_ziyang/Mail_web
-
-TOTP_SECRET='<你的 Base32 秘钥>' \
-TOTP_LABEL='chatgpt' \
-TOTP_PERIOD=30 \
-TOTP_DIGITS=6 \
-PORT=3000 \
-npm start
+python3 -m http.server 8080
 ```
 
-环境变量可选：
-- `TOTP_PERIOD`：默认 30
-- `TOTP_DIGITS`：默认 6
-- `TOTP_LABEL`：展示名称
-- `HOST`：默认 `0.0.0.0`
-- `PORT`：默认 `3000`
-- `ALLOW_ORIGIN`：CORS 白名单，默认 `*`
+然后打开：
 
-## 2) 本地自检
+```text
+http://127.0.0.1:8080/
+```
+
+本地查看同样会直接访问 Apps Script，不需要运行 `npm start`。
+
+## Apps Script 配置
+
+合并版代码位于 [code.gs](./code.gs)，支持：
+
+- `GET`：服务和配置状态；
+- `POST {"action":"code"}`：生成 TOTP；
+- `POST {"action":"verify","secret":"..."}`：验证邮箱并返回服务器时间；
+- `POST {"action":"check",...}`：查询 Gmail 验证码。
+
+脚本属性：
+
+- `GMAIL_SHARED_SECRET`
+- `TOTP_SECRET`
+- `TOTP_LABEL`
+- `TOTP_PERIOD`，默认 `30`
+- `TOTP_DIGITS`，默认 `6`
+
+更新 Apps Script 代码后，需要在“管理部署”中选择新版本并更新部署。
+
+## 可选 Node 备用服务
+
+[server.js](./server.js) 仍保留为备用代理，提供 `/health`、`/totp` 和 `/email/code`，但不参与 GitHub Pages 的正常运行。
+
+如需备用代理：
 
 ```bash
-curl http://127.0.0.1:3000/health
-curl -X POST http://127.0.0.1:3000/totp \
-  -H 'Content-Type: application/json' \
-  -d '{"action":"code"}'
+GMAIL_SHARED_SECRET='<与 Apps Script 相同的值>' PORT=3000 npm start
 ```
 
-返回示例：
-
-```json
-{ "ok": true, "code": "123456", "expires_at": 1725356400000, "account": "chatgpt", "period": 30, "digits": 6 }
-```
-
-## 3) 前端如何接上
-
-`index.html` 中默认后端地址是：
-
-- `http://127.0.0.1:3000/totp`
-
-### 关键说明（你的报错原因）
-
-GitHub Pages 页面是 HTTPS，浏览器会禁止它直接请求 `http://...` 接口。
-因此在页面里**只能填 https 链接**，否则会持续显示“当前页面为 HTTPS，后端不能是 http”。
-
-你应该填的是：
-
-`https://你的域名或隧道域名/totp`
-
-### 本地内网测试（非 HTTPS 页面）
-
-如果你不是在 GitHub Pages 打开（例如在本机直接打开 `index.html`），填：
-
-- `http://127.0.0.1:3000/totp`
-
-### GitHub Pages 需要的 HTTPS 解决方式（推荐）
-
-#### A. 先用临时 HTTPS 隧道（最快）
+## 验证
 
 ```bash
-cd /home/yu_ziyang/Mail_web
-npx localtunnel --port 3000
+npm test
 ```
 
-终端会输出形如 `https://xxxx.loca.lt` 的地址。
-
-在页面里填：
-
-- `https://xxxx.loca.lt/totp`
-
-#### B. 生产推荐（固定 HTTPS 域名）
-
-给你的 Linux 映射一个域名并做 HTTPS 反代（Nginx/Caddy/Cloudflare），例如：
-
-- `https://totp.your-domain.com/totp`
-
-也可以直接在浏览器地址中带 `api` 覆盖：
-
-```
-https://qm-qn.github.io/mail_web/?api=https://totp.your-domain.com/totp
-```
-
-第一次使用后，页面会把地址缓存在 `localStorage`（`TOTP_API`）。
+测试使用 RFC 6238 SHA-1 标准向量检查 Node 备用实现。
