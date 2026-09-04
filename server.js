@@ -8,7 +8,7 @@ import { totp } from './totp.js';
 const ROOT_DIR = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_EMAIL_ENDPOINTS = {
   'rubesubban@gmail.com': 'https://script.google.com/macros/s/AKfycbx7i4fZ34bzRT42XiXvO2vq4v8snfHwAtcSH0H-LUZPEUsmWF7TP7fxa9Ckmz80Qlw/exec',
-  'bubber7789121@gmail.com': 'https://script.google.com/macros/s/AKfycbygriDK5NQdlnx-uTi0rHUp4p4oyQit2h-aCQc0YjOsRXNKr5XBE-9Q3eYfgnZTV0p3/exec'
+  'bubber7789121@gmail.com': 'https://script.google.com/macros/s/AKfycbwLIlFuVHOXcqqMFlYS-yv--POhNibNBqTJgVFXjLWdbuUJ8TPc1xczFlyKzr_62nQL/exec'
 };
 const DEFAULT_TOTP_APPS_SCRIPT_URL = DEFAULT_EMAIL_ENDPOINTS['rubesubban@gmail.com'];
 

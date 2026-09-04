@@ -28,7 +28,7 @@ body {
     var(--bg);
 }
 
-button, input { font: inherit; }
+button, input, select { font: inherit; }
 
 button { -webkit-tap-highlight-color: transparent; }
 
@@ -69,7 +69,7 @@ h1 {
   font-size: 15px;
 }
 
-.health-badge, .tag {
+.health-badge, .tag, .account-select {
   display: inline-flex;
   align-items: center;
   min-height: 30px;
@@ -103,7 +103,7 @@ h1 {
   backdrop-filter: blur(16px);
 }
 
-input {
+input, select {
   min-width: 0;
   border: 1px solid var(--border);
   border-radius: 11px;
@@ -143,6 +143,18 @@ input:focus {
 
 .card-heading h2 { margin-bottom: 0; font-size: 21px; letter-spacing: -.02em; }
 .tag { color: #b7c9d8; }
+
+.account-select {
+  max-width: 240px;
+  padding-right: 28px;
+  outline: none;
+  cursor: pointer;
+}
+
+.account-select:focus-visible {
+  border-color: var(--border-active);
+  box-shadow: 0 0 0 3px rgba(88, 200, 186, .11);
+}
 
 .code-display {
   display: block;
@@ -195,7 +207,7 @@ input:focus {
 
 .email-control { margin-top: 25px; }
 .email-control label { display: block; margin-bottom: 7px; color: var(--muted); font-size: 12px; }
-.email-control input { width: 100%; padding: 12px 13px; }
+.email-control select { width: 100%; padding: 12px 13px; cursor: pointer; }
 
 .email-meta {
   flex-direction: column;
@@ -261,6 +273,7 @@ input:focus {
   .page-header { align-items: flex-start; flex-direction: column; gap: 14px; }
   .code-card { border-radius: 16px; }
   .code-card { padding: 21px 17px; }
+  .account-select { max-width: 190px; }
   .card-actions { flex-direction: column; }
   .code-display { font-size: clamp(38px, 14vw, 56px); }
 }

@@ -16,9 +16,9 @@ GitHub Pages → Google Apps Script
 前端已经配置以下 Apps Script：
 
 - `rubesubban@gmail.com`：合并版 Gmail + TOTP 接口；
-- `bubber7789121@gmail.com`：原有 Gmail 验证码接口。
+- `bubber7789121@gmail.com`：合并版 Gmail + TOTP 接口。
 
-页面加载后会自动获取 TOTP；邮箱验证码在输入 Gmail 地址并点击“查询邮箱码”后，通过 `verify → check` 流程查询，最长轮询一分钟。
+页面加载后会自动获取 TOTP，并可在验证码卡片中切换账号；邮箱验证码在输入 Gmail 地址并点击“查询邮箱码”后，通过 `verify → check` 流程查询，最长轮询一分钟。
 
 ## 本地查看页面
 

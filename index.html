@@ -25,7 +25,8 @@
             <p class="card-kicker">动态口令</p>
             <h2 id="totpTitle">一次性验证码</h2>
           </div>
-          <span id="totpAccount" class="tag">TOTP</span>
+          <label class="sr-only" for="totpAccountSelect">一次性验证码账号</label>
+          <select id="totpAccountSelect" class="account-select" aria-label="一次性验证码账号"></select>
         </div>
 
         <button id="totpCode" class="code-display" type="button" aria-label="复制一次性验证码" title="点击复制">------</button>
@@ -53,8 +54,7 @@
 
         <div class="email-control">
           <label for="emailInput">Gmail 账号</label>
-          <input id="emailInput" type="email" list="emailAccounts" placeholder="输入已配置的 Gmail 账号" autocomplete="email" />
-          <datalist id="emailAccounts"></datalist>
+          <select id="emailInput" aria-label="邮箱验证码账号"></select>
         </div>
 
         <button id="emailCode" class="code-display compact" type="button" aria-label="复制邮箱验证码" title="点击复制">------</button>
@@ -73,24 +73,26 @@
   </main>
 
   <script>
-    const TOTP_ENDPOINT = 'https://script.google.com/macros/s/AKfycbx7i4fZ34bzRT42XiXvO2vq4v8snfHwAtcSH0H-LUZPEUsmWF7TP7fxa9Ckmz80Qlw/exec';
-    const EMAIL_ENDPOINTS = {
-      'rubesubban@gmail.com': TOTP_ENDPOINT,
-      'bubber7789121@gmail.com': 'https://script.google.com/macros/s/AKfycbygriDK5NQdlnx-uTi0rHUp4p4oyQit2h-aCQc0YjOsRXNKr5XBE-9Q3eYfgnZTV0p3/exec'
+    const ACCOUNTS = {
+      'rubesubban@gmail.com': {
+        url: 'https://script.google.com/macros/s/AKfycbx7i4fZ34bzRT42XiXvO2vq4v8snfHwAtcSH0H-LUZPEUsmWF7TP7fxa9Ckmz80Qlw/exec'
+      },
+      'bubber7789121@gmail.com': {
+        url: 'https://script.google.com/macros/s/AKfycbwLIlFuVHOXcqqMFlYS-yv--POhNibNBqTJgVFXjLWdbuUJ8TPc1xczFlyKzr_62nQL/exec'
+      }
     };
     const GMAIL_SHARED_SECRET = '$ItG4@^7Kb1ZI5QPVfybRmDXL&A*uWY@GRatQf!s1evkSFml';
 
     const elements = {
       healthBadge: document.getElementById('healthBadge'),
       totpCode: document.getElementById('totpCode'),
-      totpAccount: document.getElementById('totpAccount'),
+      totpAccountSelect: document.getElementById('totpAccountSelect'),
       ttl: document.getElementById('ttl'),
       progressBar: document.getElementById('progressBar'),
       totpRefreshBtn: document.getElementById('totpRefreshBtn'),
       totpCopyBtn: document.getElementById('totpCopyBtn'),
       totpStatus: document.getElementById('totpStatus'),
       emailInput: document.getElementById('emailInput'),
-      emailAccounts: document.getElementById('emailAccounts'),
       emailCode: document.getElementById('emailCode'),
       emailReceived: document.getElementById('emailReceived'),
       emailSubject: document.getElementById('emailSubject'),
@@ -106,10 +108,18 @@
     let emailSearchToken = 0;
     let emailSearching = false;
 
-    function fillEmailAccounts() {
-      elements.emailAccounts.replaceChildren(...Object.keys(EMAIL_ENDPOINTS).map((email) => {
+    function fillAccountControls() {
+      const emails = Object.keys(ACCOUNTS);
+      elements.emailInput.replaceChildren(...emails.map((email) => {
         const option = document.createElement('option');
         option.value = email;
+        option.textContent = email;
+        return option;
+      }));
+      elements.totpAccountSelect.replaceChildren(...emails.map((email) => {
+        const option = document.createElement('option');
+        option.value = email;
+        option.textContent = email;
         return option;
       }));
     }
@@ -145,12 +155,14 @@
       elements.healthBadge.dataset.state = 'loading';
       elements.healthBadge.textContent = '正在连接';
       try {
-        const health = await callScript(TOTP_ENDPOINT, null, 10000);
-        if (health.service !== 'gmail-and-totp' || !health.totp_configured) {
+        const healthResults = await Promise.all(
+          Object.values(ACCOUNTS).map((account) => callScript(account.url, null, 10000))
+        );
+        if (healthResults.some((health) => health.service !== 'gmail-and-totp' || !health.totp_configured)) {
           throw new Error('Apps Script 配置不完整');
         }
         elements.healthBadge.dataset.state = 'ok';
-        elements.healthBadge.textContent = 'Apps Script 已连接';
+        elements.healthBadge.textContent = `${healthResults.length} 个账号已连接`;
         return true;
       } catch (error) {
         elements.healthBadge.dataset.state = 'error';
@@ -162,7 +174,6 @@
 
     function setTotp(payload) {
       elements.totpCode.textContent = payload.code || '------';
-      elements.totpAccount.textContent = payload.account || 'TOTP';
       totpExpiresAt = Number(payload.expires_at || 0);
       totpPeriod = Number(payload.period || 30);
       serverClockOffset = Date.now() - Number(payload.server_time || Date.now());
@@ -172,13 +183,17 @@
 
     async function refreshTotp() {
       if (totpRefreshing) return;
+      const email = elements.totpAccountSelect.value;
+      const account = ACCOUNTS[email];
+      if (!account) return;
       totpRefreshing = true;
       elements.totpRefreshBtn.disabled = true;
       elements.totpStatus.textContent = '正在获取一次性验证码…';
       try {
-        setTotp(await callScript(TOTP_ENDPOINT, { action: 'code' }, 15000));
+        const payload = await callScript(account.url, { action: 'code' }, 15000);
+        if (elements.totpAccountSelect.value === email) setTotp(payload);
         elements.healthBadge.dataset.state = 'ok';
-        elements.healthBadge.textContent = 'Apps Script 已连接';
+        elements.healthBadge.textContent = `${Object.keys(ACCOUNTS).length} 个账号已连接`;
       } catch (error) {
         elements.totpStatus.textContent = `获取失败：${error.message}`;
         elements.healthBadge.dataset.state = 'error';
@@ -186,6 +201,7 @@
       } finally {
         totpRefreshing = false;
         elements.totpRefreshBtn.disabled = false;
+        if (elements.totpAccountSelect.value !== email) refreshTotp();
       }
     }
 
@@ -216,15 +232,15 @@
     }
 
     async function fetchEmailCode(email) {
-      const url = EMAIL_ENDPOINTS[email];
-      if (!url) throw new Error('没有此邮箱');
+      const account = ACCOUNTS[email];
+      if (!account) throw new Error('没有此邮箱');
 
-      const verified = await callScript(url, {
+      const verified = await callScript(account.url, {
         action: 'verify',
         secret: GMAIL_SHARED_SECRET
       }, 15000);
 
-      return await callScript(url, {
+      return await callScript(account.url, {
         action: 'check',
         since_epoch: verified.since_epoch,
         window_sec: 120,
@@ -255,13 +271,8 @@
 
     async function searchEmailCode() {
       if (emailSearching) return stopEmailSearch();
-      const email = elements.emailInput.value.trim().toLowerCase();
-      if (!email) {
-        elements.emailStatus.textContent = '请输入邮箱地址';
-        elements.emailInput.focus();
-        return;
-      }
-      if (!EMAIL_ENDPOINTS[email]) {
+      const email = elements.emailInput.value;
+      if (!ACCOUNTS[email]) {
         elements.emailStatus.textContent = '没有此邮箱';
         return;
       }
@@ -299,16 +310,20 @@
     }
 
     elements.totpRefreshBtn.addEventListener('click', refreshTotp);
+    elements.totpAccountSelect.addEventListener('change', () => {
+      totpExpiresAt = 0;
+      elements.totpCode.textContent = '------';
+      elements.totpStatus.textContent = '正在切换账号…';
+      tickTotp();
+      refreshTotp();
+    });
     elements.totpCopyBtn.addEventListener('click', () => copyCode(elements.totpCode, elements.totpStatus));
     elements.totpCode.addEventListener('click', () => copyCode(elements.totpCode, elements.totpStatus));
     elements.emailSearchBtn.addEventListener('click', searchEmailCode);
-    elements.emailInput.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') searchEmailCode();
-    });
     elements.emailCopyBtn.addEventListener('click', () => copyCode(elements.emailCode, elements.emailStatus));
     elements.emailCode.addEventListener('click', () => copyCode(elements.emailCode, elements.emailStatus));
 
-    fillEmailAccounts();
+    fillAccountControls();
     setInterval(tickTotp, 250);
     checkHealth().then(refreshTotp);
   </script>
